@@ -336,11 +336,11 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
         float GetTowerAngle(Vector2 x)
         {
             var firstTower =
-                Conf.Towers == TowerStartPoint.Start_North ? 0 :
                 Conf.Towers == TowerStartPoint.Start_NorthEast ? 45 :
                 Conf.Towers == TowerStartPoint.Start_SouthEast ? 45 + 90 :
                 Conf.Towers == TowerStartPoint.Start_SouthWest ? 45 + 90 * 2 :
-                Conf.Towers == TowerStartPoint.Start_NorthWest ? 45 + 90 * 3 : throw new Exception("There is a problem in GetTowerAngle function");
+                Conf.Towers == TowerStartPoint.Start_NorthWest ? 45 + 90 * 3 : 
+                Conf.Towers == TowerStartPoint.Start_North ? 0 : throw new Exception("There is a problem in GetTowerAngle function");
             return (MathHelper.GetRelativeAngle(new(100f, 100f), x) + 360 - firstTower) % 360;
         }
 
