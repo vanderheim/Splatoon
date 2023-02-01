@@ -336,6 +336,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
         float GetTowerAngle(Vector2 x)
         {
             var firstTower =
+                Conf.Towers == TowerStartPoint.Start_North ? 0 :
                 Conf.Towers == TowerStartPoint.Start_NorthEast ? 45 :
                 Conf.Towers == TowerStartPoint.Start_SouthEast ? 45 + 90 :
                 Conf.Towers == TowerStartPoint.Start_SouthWest ? 45 + 90 * 2 :
@@ -593,7 +594,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
         }
 
         public enum Direction { Clockwise, Counter_clockwise }
-        public enum TowerStartPoint { Disable_towers, Start_NorthEast, Start_SouthEast, Start_SouthWest, Start_NorthWest }
+        public enum TowerStartPoint { Disable_towers, Start_NorthEast, Start_SouthEast, Start_SouthWest, Start_NorthWest, Start_North }
     }
 
     internal static class ProgramLoopExtensions
