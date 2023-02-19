@@ -2,10 +2,17 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Colors;
 using ECommons;
+using ECommons.Configuration;
 using ECommons.DalamudServices;
+using ECommons.GameFunctions;
 using ECommons.Hooks;
+using ECommons.ImGuiMethods;
 using ECommons.Logging;
+using ImGuiNET;
+using Lumina.Data;
+using Splatoon;
 using Splatoon.SplatoonScripting;
+using Splatoon.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,10 +25,14 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
 {
     public class Hello_World : SplatoonScript
     {
-        public override Metadata? Metadata => new(3, "NightmareXIV");
+        public override Metadata? Metadata => new(7, "NightmareXIV");
         public override HashSet<uint> ValidTerritories => new() { 1122 };
         bool RotPicker = false;
         int counter = 0;
+        List<Element> AvoidAlerts = new();
+        Config Conf => Controller.GetConfig<Config>();
+
+        bool IsHelloWorldRunning => FakeParty.Get().Any(x => x.StatusList.Any(z => z.StatusId.EqualsAny(Effects.RedRot, Effects.BlueRot)));
 
         public class Effects
         {
@@ -73,11 +84,18 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
 
         }
 
+        public Vector4 ColorBlueTower = 0xFFFF0000.ToVector4();
+        public Vector4 ColorRedTower = 0xFF0000FF.ToVector4();
+
         public override void OnSetup()
         {
-            Controller.RegisterElementFromCode("RedTower", "{\"Name\":\"Red\",\"type\":1,\"Enabled\":false,\"radius\":6.0,\"thicc\":4.0,\"refActorName\":\"*\",\"refActorRequireCast\":true,\"refActorCastId\":[31583],\"includeRotation\":false,\"tether\":true}");
-            Controller.RegisterElementFromCode("BlueTower", "{\"Name\":\"Blue\",\"type\":1,\"Enabled\":false,\"radius\":6.0,\"color\":3372220160,\"thicc\":4.0,\"refActorName\":\"*\",\"refActorRequireCast\":true,\"refActorCastId\":[31584],\"includeRotation\":false,\"tether\":true}");
+            Controller.RegisterElementFromCode("RedTower", "{\"Name\":\"Red\",\"type\":1,\"Enabled\":false,\"radius\":6.0,\"thicc\":7.0,\"refActorName\":\"*\",\"refActorRequireCast\":true,\"refActorCastId\":[31583],\"includeRotation\":false,\"tether\":true}");
+            Controller.RegisterElementFromCode("BlueTower", "{\"Name\":\"Blue\",\"type\":1,\"Enabled\":false,\"radius\":6.0,\"color\":3372220160,\"thicc\":7.0,\"refActorName\":\"*\",\"refActorRequireCast\":true,\"refActorCastId\":[31584],\"includeRotation\":false,\"tether\":true}");
+            Controller.RegisterElementFromCode("RedTowerSolid", "{\"Name\":\"Red\",\"type\":1,\"Enabled\":false,\"radius\":6.0,\"thicc\":4.0,\"refActorName\":\"*\",\"refActorRequireCast\":true,\"refActorCastId\":[31583],\"includeRotation\":false,\"tether\":false}");
+            Controller.RegisterElementFromCode("BlueTowerSolid", "{\"Name\":\"Blue\",\"type\":1,\"Enabled\":false,\"radius\":6.0,\"color\":3372220160,\"thicc\":4.0,\"refActorName\":\"*\",\"refActorRequireCast\":true,\"refActorCastId\":[31584],\"includeRotation\":false,\"tether\":false}");
             Controller.RegisterElementFromCode("Reminder", "{\"Name\":\"\",\"type\":1,\"Enabled\":false,\"offZ\":3.5,\"overlayBGColor\":4278190335,\"overlayTextColor\":4294967295,\"overlayFScale\":2.0,\"overlayText\":\"REMINDER\",\"refActorType\":1}");
+
+            Controller.RegisterElementFromCode("DefaPartner", "{\"Name\":\"\",\"type\":1,\"Enabled\":false,\"radius\":0.5,\"color\":4294902015,\"overlayBGColor\":4294902015,\"overlayTextColor\":4294967295,\"overlayPlaceholders\":true,\"overlayText\":\"Defamation\\\\nTaker\",\"refActorObjectID\":11111,\"FillStep\":0.2,\"refActorComparisonType\":2,\"includeRotation\":true,\"Filled\":true}");
         }
 
         public override void OnMessage(string Message)
@@ -91,6 +109,67 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
 
         public override void OnUpdate()
         {
+            Controller.GetElementByName("DefaPartner").Enabled = false;
+            AvoidAlerts.Each(x => x.Enabled = false);
+
+            try
+            {
+                if (Conf.EnableAvoiders && IsHelloWorldRunning)
+                {
+                    var otherPlayers = FakeParty.Get().Where(x => x.Address != Svc.ClientState.LocalPlayer.Address);
+                    if (HasEffect(Effects.BlueRot))
+                    {
+                        foreach (var x in otherPlayers)
+                        {
+                            if (!x.StatusList.Any(z => z.StatusId.EqualsAny(Effects.BlueRot, Effects.NoBlueRot)))
+                            {
+                                GetAvoidElementByOID(x.ObjectId).Enabled = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (!HasEffect(Effects.NoBlueRot))
+                        {
+                            foreach (var x in otherPlayers)
+                            {
+                                if (x.StatusList.Any(z => z.StatusId.EqualsAny(Effects.BlueRot)))
+                                {
+                                    GetAvoidElementByOID(x.ObjectId).Enabled = true;
+                                }
+                            }
+                        }
+                    }
+                    if (HasEffect(Effects.RedRot))
+                    {
+                        foreach (var x in otherPlayers)
+                        {
+                            if (!x.StatusList.Any(z => z.StatusId.EqualsAny(Effects.RedRot, Effects.NoRedRot)))
+                            {
+                                GetAvoidElementByOID(x.ObjectId).Enabled = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (!HasEffect(Effects.NoRedRot))
+                        {
+                            foreach (var x in otherPlayers)
+                            {
+                                if (x.StatusList.Any(z => z.StatusId.EqualsAny(Effects.RedRot)))
+                                {
+                                    GetAvoidElementByOID(x.ObjectId).Enabled = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                e.Log();
+            }
+
             if ((HasEffect(Effects.NoBlueRot) && HasEffect(Effects.NoRedRot)))
             {
                 RotPicker = false;
@@ -100,40 +179,66 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                 var isDefamationRed = Svc.Objects.Any(x => x is PlayerCharacter pc && HasEffect(Effects.Defamation, null, pc) && HasEffect(Effects.RedRot, null, pc));
                 if (HasEffect(Effects.RedRot))
                 {
-                    TowerRed(false);
+                    if(Conf.EnableVisualElementsTowers) TowerRed(false);
                     if (HasEffect(Effects.Defamation))
                     {
-                        Reminder("Defamation: inside red tower edge", ImGuiColors.DalamudRed);
+                        if(Conf.EnableOverheadHintsGeneric) Reminder("Defamation: inside red tower edge", ImGuiColors.DalamudRed);
                     }
                     else
                     {
-                        Reminder("Inside red tower >>stack<<", ImGuiColors.DalamudRed);
+                        if (Conf.EnableOverheadHintsGeneric) Reminder("Inside red tower >>stack<<", ImGuiColors.DalamudRed);
                     }
                 }
                 else if (HasEffect(Effects.BlueRot))
                 {
-                    TowerBlue(false);
+                    if (Conf.EnableVisualElementsTowers) TowerBlue(false);
                     if (HasEffect(Effects.Defamation))
                     {
-                        Reminder("Defamation: inside blue tower edge", ImGuiColors.TankBlue);
+                        if (Conf.EnableOverheadHintsGeneric) Reminder("Defamation: inside blue tower edge", ImGuiColors.TankBlue);
                     }
                     else
                     {
-                        Reminder("Inside blue tower >>stack<<", ImGuiColors.TankBlue);
+                        if (Conf.EnableOverheadHintsGeneric) Reminder("Inside blue tower >>stack<<", ImGuiColors.TankBlue);
                     }
                 }
                 else if (HasEffect(Effects.UpcomingCloseTether, 10f))
                 {
                     if(counter != 4 && !(HasEffect(Effects.NoBlueRot) && HasEffect(Effects.NoRedRot))) RotPicker = true;
-                    if (isDefamationRed && counter != 4)
+                    if (counter != 4)
                     {
-                        TowerRed(true);
-                        Reminder("Far out of red tower - pick up DEFAMATION", ImGuiColors.DalamudRed);
+                        var partner = FakeParty.Get().FirstOrDefault(x => x.Address != Svc.ClientState.LocalPlayer.Address && HasEffect(Effects.UpcomingCloseTether, 10f, x));
+                        if (isDefamationRed)
+                        {
+                            if (Conf.EnableVisualElementsTowers) TowerRed(true);
+                            if (Conf.EnableOverheadHintsGeneric) Reminder("Far out of red tower - pick up DEFAMATION", ImGuiColors.DalamudRed);
+                        }
+                        else
+                        {
+                            if (Conf.EnableVisualElementsTowers) TowerBlue(true);
+                            if (Conf.EnableOverheadHintsGeneric) Reminder("Far out of blue tower - pick up DEFAMATION", ImGuiColors.TankBlue);
+                        }
+                        if(partner != null)
+                        {
+                            if (Conf.EnableDefamationPartner)
+                            {
+                                Controller.GetElementByName("DefaPartner").Enabled = true;
+                                Controller.GetElementByName("DefaPartner").tether = Conf.EnableDefamationPartnerTether;
+                                Controller.GetElementByName("DefaPartner").refActorObjectID = partner.ObjectId;
+                            }
+                        }
                     }
                     else
                     {
-                        TowerBlue(true);
-                        Reminder("Far out of blue tower - pick up DEFAMATION", ImGuiColors.TankBlue);
+                        if (isDefamationRed)
+                        {
+                            if (Conf.EnableVisualElementsTowers) TowerBlue(true);
+                            if (Conf.EnableOverheadHintsGeneric) Reminder("Between blue towers - final stack or avoid", ImGuiColors.TankBlue);
+                        }
+                        else
+                        {
+                            if (Conf.EnableVisualElementsTowers) TowerRed(true);
+                            if (Conf.EnableOverheadHintsGeneric) Reminder("Between red towers - final stack or avoid", ImGuiColors.DalamudRed);
+                        }
                     }
                 }
                 else if (HasEffect(Effects.UpcomingFarTether, 10))
@@ -141,13 +246,13 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                     if (counter != 4 && !(HasEffect(Effects.NoBlueRot) && HasEffect(Effects.NoRedRot))) RotPicker = true;
                     if (isDefamationRed)
                     {
-                        TowerBlue(true);
-                        Reminder("Between blue towers" + (counter==4?" - stack last": " - STACK"), ImGuiColors.TankBlue);
+                        if (Conf.EnableVisualElementsTowers) TowerBlue(true);
+                        if (Conf.EnableOverheadHintsGeneric) Reminder("Between blue towers" + (counter==4? " - final STACK" : " - STACK"), ImGuiColors.TankBlue);
                     }
                     else
                     {
-                        TowerRed(true);
-                        Reminder("Between red towers" + (counter == 4 ? " - stack last" : " - STACK"), ImGuiColors.DalamudRed);
+                        if (Conf.EnableVisualElementsTowers) TowerRed(true);
+                        if (Conf.EnableOverheadHintsGeneric) Reminder("Between red towers" + (counter == 4 ? " - final STACK" : " - STACK"), ImGuiColors.DalamudRed);
                     }
                 }
             }
@@ -157,7 +262,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                 Reminder(null);
                 if (RotPicker)
                 {
-                    Reminder("Pick up rot", 0xFF000000.ToVector4());
+                    if(Conf.EnableRotPickerReminding) Reminder("Pick up rot", 0xFF000000.ToVector4());
                     if(HasEffect(Effects.BlueRot) || HasEffect(Effects.RedRot))
                     {
                         RotPicker = false;
@@ -167,13 +272,35 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                 {
                     if (HasEffect(Effects.FarTether))
                     {
-                        Reminder("Break tethers - go FAR", ImGuiColors.HealerGreen);
+                        if(Conf.EnableOverheadHintsTether) Reminder("Break tethers - go FAR", ImGuiColors.HealerGreen);
                     }
                     if (HasEffect(Effects.CloseTether) && !Svc.Objects.Any(x => x is PlayerCharacter pc && HasEffect(Effects.FarTether)))
                     {
-                        Reminder("Break tethers - go CLOSE", ImGuiColors.ParsedBlue);
+                        if (Conf.EnableOverheadHintsTether) Reminder("Break tethers - go CLOSE", ImGuiColors.ParsedBlue);
                     }
                 }
+            }
+        }
+
+        public override void OnEnable()
+        {
+            TowerOff();
+            Reminder(null);
+            counter = 0;
+            RotPicker = false;
+            Controller.GetElementByName("DefaPartner").Enabled = false;
+            SetupElements();
+            PluginLog.Information("Counter: " + counter);
+        }
+
+        void SetupElements()
+        {
+            var list = FakeParty.Get().ToArray();
+            PluginLog.Debug($"Party count is {list}");
+            AvoidAlerts.Clear();
+            for (var i = 0; i < list.Length; i++)
+            {
+                AvoidAlerts.Add(Controller.RegisterElementFromCode($"Avoid{i}", "{\"Name\":\"\",\"type\":3,\"Enabled\":false,\"refZ\":1.2,\"radius\":0.0,\"color\":3355473407,\"overlayFScale\":5.0,\"thicc\":25.0,\"refActorObjectID\":12345678,\"refActorComparisonType\":2}".Replace("12345678", $"{list[i].ObjectId}")));
             }
         }
 
@@ -181,11 +308,11 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
         {
             if(category.EqualsAny(DirectorUpdateCategory.Recommence, DirectorUpdateCategory.Wipe, DirectorUpdateCategory.Commence))
             {
-                TowerOff();
-                Reminder(null);
-                counter = 0;
-                RotPicker = false;
-                DuoLog.Information("Counter: " + counter);
+                this.OnEnable();
+                if (category != DirectorUpdateCategory.Wipe)
+                {
+                    SetupElements();
+                }
             }
         }
 
@@ -193,16 +320,26 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
         {
             Controller.GetElementByName("RedTower").Enabled = true;
             Controller.GetElementByName("BlueTower").Enabled = false;
-            Controller.GetElementByName("RedTower").color = (Controller.GetElementByName("RedTower").color.ToVector4() with { W = filled ? 0.3f : 0.8f }).ToUint();
-            Controller.GetElementByName("RedTower").Filled = filled;
+            Controller.GetElementByName("RedTower").color = GradientColor.Get(ColorRedTower, ColorRedTower with { W = 0.5f}, 333).ToUint();
+            Controller.GetElementByName("RedTowerSolid").Enabled = filled;
+            if (filled)
+            {
+                Controller.GetElementByName("RedTowerSolid").Filled = true;
+                Controller.GetElementByName("RedTowerSolid").color = (ColorRedTower with { W = 0.3f }).ToUint();
+            }
         }
 
         void TowerBlue(bool filled)
         {
             Controller.GetElementByName("RedTower").Enabled = false;
             Controller.GetElementByName("BlueTower").Enabled = true;
-            Controller.GetElementByName("BlueTower").color = (Controller.GetElementByName("BlueTower").color.ToVector4() with { W = filled ? 0.3f : 0.8f }).ToUint();
-            Controller.GetElementByName("BlueTower").Filled = filled;
+            Controller.GetElementByName("BlueTower").color = GradientColor.Get(ColorBlueTower, ColorBlueTower with { W = 0.5f }, 333).ToUint();
+            Controller.GetElementByName("BlueTowerSolid").Enabled = filled;
+            if (filled)
+            {
+                Controller.GetElementByName("BlueTowerSolid").Filled = true;
+                Controller.GetElementByName("BlueTowerSolid").color = (ColorBlueTower with { W = 0.3f }).ToUint();
+            }
         }
 
         void TowerOff()
@@ -235,5 +372,40 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                 }
             }
         }
+
+        Element? GetAvoidElementByOID(uint oid)
+        {
+            foreach(var e in AvoidAlerts)
+            {
+                if (e.refActorObjectID == oid)
+                {
+                    return e;
+                }
+            }
+            return null;
+        }
+
+        public override void OnSettingsDraw()
+        {
+            ImGui.Checkbox($"Highlight players contacting with which will result debuff to spread", ref Conf.EnableAvoiders);
+            ImGui.Checkbox($"Display your defamation partner", ref Conf.EnableDefamationPartner);
+            ImGui.SameLine();
+            ImGui.Checkbox($"Tether to partner", ref Conf.EnableDefamationPartnerTether);
+            ImGui.Checkbox($"Enable visual elements for towers", ref Conf.EnableVisualElementsTowers);
+            ImGui.Checkbox($"Enable general mechanic overhead hints", ref Conf.EnableOverheadHintsGeneric);
+            ImGui.Checkbox($"Enable rot picking overhead reminder", ref Conf.EnableRotPickerReminding);
+            ImGui.Checkbox($"Enable tether break overhead reminder", ref Conf.EnableOverheadHintsTether);
+        }
+    }
+
+    public class Config : IEzConfig
+    {
+        public bool EnableAvoiders = true;
+        public bool EnableDefamationPartner = true;
+        public bool EnableDefamationPartnerTether = false;
+        public bool EnableVisualElementsTowers = true;
+        public bool EnableOverheadHintsGeneric = true;
+        public bool EnableOverheadHintsTether = true;
+        public bool EnableRotPickerReminding = true;
     }
 }
