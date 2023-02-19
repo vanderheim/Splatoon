@@ -168,7 +168,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                                 {
                                     if (IsAnyoneUnsafe)
                                     {
-                                        Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                        Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                                     }
                                     else
                                     {
@@ -205,12 +205,12 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                             {
                                 if (isMeClose)
                                 {
-                                    Alert("Middle, bait Beyond Defense", ImGuiColors.DalamudRed);
+                                    Alert("Bait designated arm", ImGuiColors.DalamudOrange);
+                                    myArm = arms.OrderBy(x => Vector3.Distance(x.Position, beetle.Position)).ToArray()[0..2].OrderBy(x => Vector3.Distance(Player.Position, x.Position)).First();
                                 }
                                 else
                                 {
-                                    Alert("Bait designated arm", ImGuiColors.DalamudOrange);
-                                    myArm = arms.OrderBy(x => Vector3.Distance(x.Position, beetle.Position)).ToArray()[0..2].OrderBy(x => Vector3.Distance(Player.Position, x.Position)).First();
+                                    Alert("Middle, bait Beyond Defense", ImGuiColors.DalamudRed);
                                 }
                             }
                             else
@@ -244,7 +244,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                         {
                             if (IsAnyoneUnsafe)
                             {
-                                Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                             }
                             else
                             {
@@ -297,7 +297,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                                     {
                                         if (IsAnyoneUnsafe)
                                         {
-                                            Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                            Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                                         }
                                         else
                                         {
@@ -327,7 +327,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                         {
                             if (IsAnyoneUnsafe)
                             {
-                                Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                             }
                             else
                             {
