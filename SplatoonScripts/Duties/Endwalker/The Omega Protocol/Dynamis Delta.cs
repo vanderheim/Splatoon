@@ -168,7 +168,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                                 {
                                     if (IsAnyoneUnsafe)
                                     {
-                                        Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                        Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                                     }
                                     else
                                     {
@@ -244,7 +244,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                         {
                             if (IsAnyoneUnsafe)
                             {
-                                Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                             }
                             else
                             {
@@ -297,7 +297,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                                     {
                                         if (IsAnyoneUnsafe)
                                         {
-                                            Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                            Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                                         }
                                         else
                                         {
@@ -327,7 +327,7 @@ namespace SplatoonScriptsOfficial.Duties.Endwalker.The_Omega_Protocol
                         {
                             if (IsAnyoneUnsafe)
                             {
-                                Alert("Await for debuff before breaking!", Colors.Red.ToVector4());
+                                Alert("WAIT for debuff before breaking!", Colors.Red.ToVector4());
                             }
                             else
                             {
